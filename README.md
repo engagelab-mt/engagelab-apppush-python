@@ -58,6 +58,8 @@ print(f"Push sent: msg_id={result.msg_id}")
 | `DataCenter.HONG_KONG`      | 香港         | `https://pushapi-hk.engagelab.com`    |
 | `DataCenter.VIRGINIA`       | 美国弗吉尼亚   | `https://pushapi-usva.engagelab.com`  |
 | `DataCenter.FRANKFURT`      | 德国法兰克福   | `https://pushapi-defra.engagelab.com` |
+| `DataCenter.JAPAN`          | 日本         | `https://pushapi-jpn.engagelab.com`   |
+| `DataCenter.BRAZIL`         | 巴西         | `https://pushapi-bra.engagelab.com`   |
 
 ## API 模块
 
@@ -91,6 +93,7 @@ client.device.get(registration_id)              # 查询设备信息
 client.device.set(registration_id, param)        # 设置设备标签/别名
 client.device.delete(registration_id)            # 删除设备
 client.device.get_status(param)                  # 查询设备在线状态
+client.device.register_token(param)              # Token 换取 Registration ID
 ```
 
 ### Tag — 标签
@@ -99,9 +102,9 @@ client.device.get_status(param)                  # 查询设备在线状态
 client.tag.list()                                           # 获取标签列表
 client.tag.set(tag, param)                                  # 添加/移除标签设备
 client.tag.delete(tag, platforms=["android"])                # 删除标签
-client.tag.get_count(tags, platforms=["android"])            # 查询标签设备数
+client.tag.get_count(tags, platform="android")                # 查询标签设备数
 client.tag.get_device_status(tag, registration_id)          # 查询设备标签绑定状态
-client.tag.get_quota(tags=["vip"], platforms=["android"])    # 查询标签配额
+client.tag.get_quota(tags=["vip"], platform="android")       # 查询标签配额
 ```
 
 ### Alias — 别名
@@ -129,7 +132,7 @@ client.status.users(time_unit, start, duration)            # 用户统计
 client.status.message_detail(message_ids)                  # 消息送达统计
 client.status.message_lifecycle(msg_id, registration_ids)  # 消息生命周期
 client.status.batch_message_detail(message_ids)            # 批量消息统计
-client.status.plan_detail(plan_id, message_ids)            # 推送计划统计
+client.status.plan_detail(plan_ids, start_date, end_date)   # 推送计划统计
 ```
 
 ### Plan — 推送计划
@@ -145,7 +148,7 @@ client.plan.batch_delete(plan_ids)                                        # 批�
 ### Voice — 语音/TTS
 
 ```python
-client.voice.create(param)        # 创建语音模板
+client.voice.create(language, file_path) # 上传语音文件
 client.voice.list()               # 获取语音模板列表
 client.voice.get(language)        # 获取语音模板
 client.voice.delete(language)     # 删除语音模板
@@ -154,8 +157,15 @@ client.voice.delete(language)     # 删除语音模板
 ### Image — 图片
 
 ```python
-client.image.upload_oppo(file_path)                       # 上传 OPPO 大图 (文件路径)
-client.image.upload_oppo_from_reader(filename, reader)    # 上传 OPPO 大图 (file-like object)
+client.image.upload_oppo(engagelab.OppoImageParam(
+    big_picture_url="https://example.com/image.jpg",
+)) # 大图、小图 URL 只能传一个
+```
+
+### App — 应用信息
+
+```python
+client.app.get_vip_status() # 查询 VIP 状态
 ```
 
 ## 错误处理

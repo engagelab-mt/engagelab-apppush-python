@@ -22,6 +22,7 @@ class UserStatusItem:
     time: Optional[str] = None
     android: Optional[Dict[str, Any]] = None
     ios: Optional[Dict[str, Any]] = None
+    hmos: Optional[Dict[str, Any]] = None
 
 
 @dataclass
@@ -84,7 +85,7 @@ class StatusService:
         }
         return self._client._get("/v4/status/message", query=query)
 
-    def batch_message_detail(self, message_ids: List[str]) -> Dict[str, Any]:
+    def batch_message_detail(self, message_ids: List[str]) -> List[Dict[str, Any]]:
         """Return delivery statistics for multiple messages (batch).
 
         ``GET /v4/status/batch/message``
@@ -94,14 +95,17 @@ class StatusService:
 
     def plan_detail(
         self,
-        plan_id: str,
-        message_ids: Optional[List[str]] = None,
+        plan_ids: List[str],
+        start_date: str,
+        end_date: str,
     ) -> Dict[str, Any]:
         """Return message statistics for a push plan.
 
         ``GET /v4/status/plan/detail``
         """
-        query: Dict[str, str] = {"plan_id": plan_id}
-        if message_ids:
-            query["message_ids"] = ",".join(message_ids)
+        query: Dict[str, str] = {
+            "plan_ids": ",".join(plan_ids),
+            "start_date": start_date,
+            "end_date": end_date,
+        }
         return self._client._get("/v4/status/plan/detail", query=query)

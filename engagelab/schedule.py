@@ -28,9 +28,15 @@ class TriggerPeriodical:
 
 
 @dataclass
+class TriggerIntelligent:
+    backup_time: Optional[str] = None
+
+
+@dataclass
 class ScheduleTrigger:
     single: Optional[TriggerSingle] = None
     periodical: Optional[TriggerPeriodical] = None
+    intelligent: Optional[TriggerIntelligent] = None
 
 
 @dataclass

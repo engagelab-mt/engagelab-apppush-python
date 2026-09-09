@@ -1,75 +1,38 @@
-"""Image upload service."""
+"""OPPO notification image URL service."""
 
 from __future__ import annotations
 
-import io
-import json
-import mimetypes
-import os
-import uuid
 from dataclasses import dataclass
-from typing import Any, BinaryIO, Dict, Optional
-
-from .errors import parse_api_error
+from typing import Any, Optional
 
 
-# ---------------------------------------------------------------------------
-# Models
-# ---------------------------------------------------------------------------
+@dataclass
+class OppoImageParam:
+    big_picture_url: Optional[str] = None
+    small_picture_url: Optional[str] = None
+
 
 @dataclass
 class ImageUploadResult:
-    """Result of an image upload."""
+    big_picture_id: Optional[str] = None
+    small_picture_id: Optional[str] = None
 
-    media_id: str = ""
-
-
-# ---------------------------------------------------------------------------
-# Service
-# ---------------------------------------------------------------------------
 
 class ImageService:
-    """Image upload service — ``client.image``."""
+    """OPPO notification image service — ``client.image``."""
 
     def __init__(self, client: Any) -> None:
         self._client = client
 
-    def upload_oppo(self, file_path: str) -> ImageUploadResult:
-        """Upload an image for OPPO push big picture (from file path).
+    def upload_oppo(self, param: OppoImageParam) -> ImageUploadResult:
+        """Register exactly one big- or small-picture URL.
 
-        ``POST /v4/image/oppo`` (multipart/form-data)
+        ``POST /v4/image/oppo``
         """
-        with open(file_path, "rb") as f:
-            return self.upload_oppo_from_reader(os.path.basename(file_path), f)
-
-    def upload_oppo_from_reader(
-        self,
-        filename: str,
-        reader: BinaryIO,
-    ) -> ImageUploadResult:
-        """Upload an image for OPPO push big picture (from a file-like object).
-
-        ``POST /v4/image/oppo`` (multipart/form-data)
-        """
-        import urllib.error
-        import urllib.request
-
-        boundary = uuid.uuid4().hex
-        content_type = f"multipart/form-data; boundary={boundary}"
-
-        file_data = reader.read()
-        mime_type = mimetypes.guess_type(filename)[0] or "application/octet-stream"
-
-        body = (
-            f"--{boundary}\r\n"
-            f'Content-Disposition: form-data; name="file"; filename="{filename}"\r\n'
-            f"Content-Type: {mime_type}\r\n\r\n"
-        ).encode("utf-8") + file_data + f"\r\n--{boundary}--\r\n".encode("utf-8")
-
-        return self._client._request(
-            "POST",
-            "/v4/image/oppo",
-            result_cls=ImageUploadResult,
-            headers={"Content-Type": content_type},
-            raw_body=body,
+        if bool(param.big_picture_url) == bool(param.small_picture_url):
+            raise ValueError(
+                "exactly one of big_picture_url and small_picture_url is required"
+            )
+        return self._client._post(
+            "/v4/image/oppo", body=param, result_cls=ImageUploadResult
         )

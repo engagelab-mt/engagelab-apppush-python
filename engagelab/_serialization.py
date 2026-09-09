@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Any, Dict, Type, TypeVar
+from typing import Any, Dict, Type, TypeVar, Union, get_args, get_origin, get_type_hints
 
 T = TypeVar("T")
 
@@ -39,11 +39,30 @@ def from_dict(cls: Type[T], data: Any) -> T:  # type: ignore[return]
     if not dataclasses.is_dataclass(cls):
         return data  # type: ignore[return-value]
     field_map: Dict[str, str] = getattr(cls, "_FIELD_MAP", {})
+    type_hints = get_type_hints(cls)
     kwargs: Dict[str, Any] = {}
     for f in dataclasses.fields(cls):
         json_key = field_map.get(f.name, f.name)
         if json_key in data:
-            kwargs[f.name] = data[json_key]
+            kwargs[f.name] = _from_value(type_hints.get(f.name, f.type), data[json_key])
         elif f.name in data:
-            kwargs[f.name] = data[f.name]
+            kwargs[f.name] = _from_value(type_hints.get(f.name, f.type), data[f.name])
     return cls(**kwargs)
+
+
+def _from_value(annotation: Any, value: Any) -> Any:
+    """Recursively materialize nested dataclasses declared by a response model."""
+    if value is None or annotation is Any:
+        return value
+    origin = get_origin(annotation)
+    args = get_args(annotation)
+    if origin is Union:
+        target = next((arg for arg in args if arg is not type(None)), Any)
+        return _from_value(target, value)
+    if origin is list and args:
+        return [_from_value(args[0], item) for item in value]
+    if origin is dict and len(args) == 2:
+        return {key: _from_value(args[1], item) for key, item in value.items()}
+    if dataclasses.is_dataclass(annotation) and isinstance(value, dict):
+        return from_dict(annotation, value)
+    return value

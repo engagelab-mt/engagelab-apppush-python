@@ -27,6 +27,8 @@ from .push import (
     AndroidNotification,
     BatchPushParam,
     BatchPushRequest,
+    BatchPushResult,
+    BatchPushRateLimitInfo,
     BatchPushSingleResult,
     CustomMessage,
     HmosIntent,
@@ -50,12 +52,16 @@ from .device import (
     DeviceSetTags,
     DeviceStatusGetParam,
     DeviceStatusGetResult,
+    DeviceTokenRegisterParam,
+    DeviceTokenRegisterResult,
+    DeviceTokenResult,
 )
 from .tag import (
     TagQuotaData,
     TagQuotaGetResult,
     TagRegistrationIDs,
     TagSetParam,
+    TagStatusGetResult,
     TagsCountGetResult,
     TagsGetResult,
 )
@@ -68,6 +74,7 @@ from .schedule import (
     SchedulePushResult,
     ScheduleTrigger,
     TriggerPeriodical,
+    TriggerIntelligent,
     TriggerSingle,
 )
 from .status import UserStatusGetResult, UserStatusItem, UserStatusPlatform
@@ -78,8 +85,9 @@ from .plan import (
     PushPlanParam,
     PushPlanResult,
 )
-from .voice import VoiceListResult, VoiceParam, VoiceResult
-from .image import ImageUploadResult
+from .voice import VoiceResult
+from .image import ImageUploadResult, OppoImageParam
+from .app import AppVipStatusResult
 from .group_push import GroupPushClient, GroupPushResult
 
 __version__ = "0.1.0"
@@ -110,6 +118,8 @@ __all__ = [
     "PushWithdrawResult",
     "BatchPushParam",
     "BatchPushRequest",
+    "BatchPushResult",
+    "BatchPushRateLimitInfo",
     "BatchPushSingleResult",
     # Device
     "DeviceStatusGetParam",
@@ -117,6 +127,9 @@ __all__ = [
     "DeviceGetResult",
     "DeviceSetParam",
     "DeviceSetTags",
+    "DeviceTokenRegisterParam",
+    "DeviceTokenRegisterResult",
+    "DeviceTokenResult",
     # Tag
     "TagsGetResult",
     "TagSetParam",
@@ -124,6 +137,7 @@ __all__ = [
     "TagsCountGetResult",
     "TagQuotaGetResult",
     "TagQuotaData",
+    "TagStatusGetResult",
     # Alias
     "AliasStatusGetResult",
     # Schedule
@@ -131,6 +145,7 @@ __all__ = [
     "ScheduleTrigger",
     "TriggerSingle",
     "TriggerPeriodical",
+    "TriggerIntelligent",
     "SchedulePushResult",
     "SchedulePushGetResult",
     "SchedulePushListResult",
@@ -146,11 +161,12 @@ __all__ = [
     "PushPlanListResult",
     "PushPlanInfo",
     # Voice
-    "VoiceParam",
     "VoiceResult",
-    "VoiceListResult",
     # Image
     "ImageUploadResult",
+    "OppoImageParam",
+    # App
+    "AppVipStatusResult",
     # Group Push
     "GroupPushClient",
     "GroupPushResult",
