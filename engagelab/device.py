@@ -107,14 +107,6 @@ class DeviceService:
 
         ``POST /v4/devices/token/registration_id``
         """
-        if len(param.tokens) < 1 or len(param.tokens) > 500:
-            raise ValueError("tokens length must be between 1 and 500")
-        if param.platform not in ("android", "ios"):
-            raise ValueError("platform must be android or ios")
-        if param.platform == "ios" and param.apns_production is None:
-            raise ValueError("apns_production is required for ios")
-        if param.platform == "android" and param.apns_production is not None:
-            raise ValueError("apns_production must not be set for android")
         return self._client._post(
             "/v4/devices/token/registration_id",
             body=param,

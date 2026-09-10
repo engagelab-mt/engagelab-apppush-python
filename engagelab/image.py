@@ -25,14 +25,10 @@ class ImageService:
         self._client = client
 
     def upload_oppo(self, param: OppoImageParam) -> ImageUploadResult:
-        """Register exactly one big- or small-picture URL.
+        """Register OPPO notification image URLs.
 
         ``POST /v4/image/oppo``
         """
-        if bool(param.big_picture_url) == bool(param.small_picture_url):
-            raise ValueError(
-                "exactly one of big_picture_url and small_picture_url is required"
-            )
         return self._client._post(
             "/v4/image/oppo", body=param, result_cls=ImageUploadResult
         )

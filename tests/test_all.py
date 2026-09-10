@@ -1424,16 +1424,6 @@ class TestImage(unittest.TestCase):
             "big_picture_url": "https://example.com/big.png",
         })
 
-    def test_upload_oppo_requires_exactly_one_url(self) -> None:
-        client = _client(self.server)
-        with self.assertRaises(ValueError):
-            client.image.upload_oppo(engagelab.OppoImageParam())
-        with self.assertRaises(ValueError):
-            client.image.upload_oppo(engagelab.OppoImageParam(
-                big_picture_url="a", small_picture_url="b",
-            ))
-
-
 # ===================================================================
 # Group Push client
 # ===================================================================
