@@ -9,14 +9,12 @@ from __future__ import annotations
 
 import base64
 import http.server
-import io
 import json
 import os
 import tempfile
 import threading
 import unittest
-from typing import Any, Dict, List, Optional
-from urllib.parse import parse_qs, urlparse
+from typing import Any, Dict
 
 import engagelab
 from engagelab._serialization import from_dict, to_dict
