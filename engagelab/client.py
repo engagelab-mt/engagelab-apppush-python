@@ -22,6 +22,8 @@ class DataCenter:
     HONG_KONG = "https://pushapi-hk.engagelab.com"
     VIRGINIA = "https://pushapi-usva.engagelab.com"
     FRANKFURT = "https://pushapi-defra.engagelab.com"
+    JAPAN = "https://pushapi-jpn.engagelab.com"
+    BRAZIL = "https://pushapi-bra.engagelab.com"
 
 
 def _basic_auth(username: str, password: str) -> str:
@@ -60,6 +62,7 @@ class Client:
         from .status import StatusService
         from .tag import TagService
         from .voice import VoiceService
+        from .app import AppService
 
         self.push = PushService(self)
         self.device = DeviceService(self)
@@ -70,6 +73,7 @@ class Client:
         self.plan = PlanService(self)
         self.voice = VoiceService(self)
         self.image = ImageService(self)
+        self.app = AppService(self)
 
     # -- internal HTTP helpers ------------------------------------------------
 
@@ -118,11 +122,11 @@ class Client:
     def _get(
         self,
         path: str,
-        query: Optional[Dict[str, str]] = None,
+        query: Optional[Dict[str, Any]] = None,
         result_cls: Optional[Type[T]] = None,
     ) -> Any:
         if query:
-            path = path + "?" + urllib.parse.urlencode(query)
+            path = path + "?" + urllib.parse.urlencode(query, doseq=True)
         return self._request("GET", path, result_cls=result_cls)
 
     def _post(
@@ -144,9 +148,9 @@ class Client:
     def _delete(
         self,
         path: str,
-        query: Optional[Dict[str, str]] = None,
+        query: Optional[Dict[str, Any]] = None,
         result_cls: Optional[Type[T]] = None,
     ) -> Any:
         if query:
-            path = path + "?" + urllib.parse.urlencode(query)
+            path = path + "?" + urllib.parse.urlencode(query, doseq=True)
         return self._request("DELETE", path, result_cls=result_cls)

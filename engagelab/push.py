@@ -17,7 +17,7 @@ class AndroidIntent:
 
 @dataclass
 class AndroidNotification:
-    alert: Optional[str] = None
+    alert: Optional[Union[str, Dict[str, Any]]] = None
     title: Optional[str] = None
     builder_id: Optional[int] = None
     channel_id: Optional[str] = None
@@ -33,9 +33,11 @@ class AndroidNotification:
     small_icon: Optional[str] = None
     sound: Optional[str] = None
     badge_add_num: Optional[int] = None
+    badge_set_num: Optional[int] = None
     badge_class: Optional[str] = None
     display_foreground: Optional[str] = None
     group_id: Optional[str] = None
+    is_fold: Optional[bool] = None
 
 
 @dataclass
@@ -89,7 +91,7 @@ class HmosNotification:
 
 @dataclass
 class NotificationMessage:
-    alert: Optional[str] = None
+    alert: Optional[Union[str, Dict[str, Any]]] = None
     android: Optional[AndroidNotification] = None
     ios: Optional[IOSNotification] = None
     hmos: Optional[HmosNotification] = None
@@ -98,9 +100,11 @@ class NotificationMessage:
 @dataclass
 class CustomMessage:
     title: Optional[str] = None
-    msg_content: Optional[str] = None
+    msg_content: Optional[Union[str, Dict[str, Any]]] = None
     content_type: Optional[str] = None
     extras: Optional[Dict[str, Any]] = None
+    test_message: Optional[bool] = None
+    receipt_id: Optional[str] = None
 
 
 @dataclass
@@ -151,6 +155,7 @@ class Options:
     enhanc_message: Optional[bool] = None
     plan_id: Optional[str] = None
     cid: Optional[str] = None
+    auto_truncation: Optional[bool] = None
 
 
 @dataclass
@@ -175,6 +180,7 @@ class PushBody:
     notification: Optional[NotificationMessage] = None
     message: Optional[CustomMessage] = None
     live_activity: Optional[LiveActivityMessage] = None
+    voip: Optional[Dict[str, Any]] = None
     options: Optional[Options] = None
 
 
@@ -226,6 +232,19 @@ class BatchPushSingleResult:
     target: Optional[str] = None
     success: bool = False
     msg_id: int = 0
+    error: Optional[Dict[str, Any]] = None
+
+
+@dataclass
+class BatchPushRateLimitInfo:
+    message: Optional[str] = None
+    rate_limit_occurred: bool = False
+
+
+@dataclass
+class BatchPushResult:
+    results: Dict[str, BatchPushSingleResult] = field(default_factory=dict)
+    rate_limit_info: Optional[BatchPushRateLimitInfo] = None
 
 
 # ---------------------------------------------------------------------------
@@ -266,16 +285,16 @@ class PushService:
         """
         return self._client._delete(f"/v4/push/withdraw/{msg_id}", result_cls=PushWithdrawResult)
 
-    def batch_by_regid(self, param: BatchPushParam) -> Dict[str, Any]:
+    def batch_by_regid(self, param: BatchPushParam) -> BatchPushResult:
         """Batch push by registration IDs.
 
         ``POST /v4/batch/push/regid``
         """
-        return self._client._post("/v4/batch/push/regid", body=param)
+        return self._client._post("/v4/batch/push/regid", body=param, result_cls=BatchPushResult)
 
-    def batch_by_alias(self, param: BatchPushParam) -> Dict[str, Any]:
+    def batch_by_alias(self, param: BatchPushParam) -> BatchPushResult:
         """Batch push by aliases.
 
         ``POST /v4/batch/push/alias``
         """
-        return self._client._post("/v4/batch/push/alias", body=param)
+        return self._client._post("/v4/batch/push/alias", body=param, result_cls=BatchPushResult)

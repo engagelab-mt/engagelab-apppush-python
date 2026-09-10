@@ -16,6 +16,11 @@ class TagsGetResult:
 
 
 @dataclass
+class TagStatusGetResult:
+    result: bool = False
+
+
+@dataclass
 class TagRegistrationIDs:
     add: Optional[List[str]] = None
     remove: Optional[List[str]] = None
@@ -92,43 +97,37 @@ class TagService:
     def get_count(
         self,
         tags: List[str],
-        platforms: Optional[List[str]] = None,
+        platform: str,
     ) -> TagsCountGetResult:
         """Return device counts for given tags and platforms.
 
         ``GET /v4/tags_count``
         """
-        query: Dict[str, str] = {"tags": ",".join(tags)}
-        if platforms:
-            query["platform"] = ",".join(platforms)
+        query: Dict[str, Any] = {"tags": tags, "platform": platform}
         return self._client._get("/v4/tags_count", query=query, result_cls=TagsCountGetResult)
 
-    def get_device_status(self, tag: str, registration_id: str) -> TagsGetResult:
+    def get_device_status(self, tag: str, registration_id: str) -> TagStatusGetResult:
         """Check if a registration ID has a specific tag.
 
         ``GET /v4/tags/{tag}/registration_ids/{registration_id}``
         """
         return self._client._get(
             f"/v4/tags/{tag}/registration_ids/{registration_id}",
-            result_cls=TagsGetResult,
+            result_cls=TagStatusGetResult,
         )
 
     def get_quota(
         self,
-        tags: Optional[List[str]] = None,
-        platforms: Optional[List[str]] = None,
+        tags: List[str],
+        platform: str,
     ) -> TagQuotaGetResult:
         """Return tag / alias quota information.
 
         ``GET /v4/tags/quota-info``
         """
-        query: Dict[str, str] = {}
-        if tags:
-            query["tags"] = ",".join(tags)
-        if platforms:
-            query["platform"] = ",".join(platforms)
+        query: Dict[str, Any] = {"tags": tags, "platform": platform}
         return self._client._get(
             "/v4/tags/quota-info",
-            query=query or None,
+            query=query,
             result_cls=TagQuotaGetResult,
         )

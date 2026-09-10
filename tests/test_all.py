@@ -9,14 +9,12 @@ from __future__ import annotations
 
 import base64
 import http.server
-import io
 import json
 import os
 import tempfile
 import threading
 import unittest
-from typing import Any, Dict, List, Optional
-from urllib.parse import parse_qs, urlparse
+from typing import Any, Dict
 
 import engagelab
 from engagelab._serialization import from_dict, to_dict
@@ -469,11 +467,9 @@ class TestToDict(unittest.TestCase):
         self.assertIn("single", d["trigger"])
         self.assertEqual(d["push"]["from"], "api")  # FIELD_MAP applied in nested
 
-    # -- VoiceParam --
-
-    def test_voice_param_all_fields(self) -> None:
-        d = to_dict(engagelab.VoiceParam(language="zh", content="你好", tts_type="default"))
-        self.assertEqual(len(d), 3)
+    def test_oppo_image_param(self) -> None:
+        d = to_dict(engagelab.OppoImageParam(big_picture_url="https://example.com/a.png"))
+        self.assertEqual(d, {"big_picture_url": "https://example.com/a.png"})
 
     # -- PushPlanParam --
 
@@ -611,23 +607,19 @@ class TestFromDict(unittest.TestCase):
 
     def test_push_plan_list_result(self) -> None:
         r = from_dict(engagelab.PushPlanListResult, {
-            "push_plan_info": [{"push_id": "p1"}], "total": 5,
+            "push_plan_info": [{"plan_id": "p1"}], "total": 5,
         })
         self.assertEqual(r.total, 5)
         self.assertEqual(len(r.push_plan_info), 1)
 
     def test_voice_result(self) -> None:
-        r = from_dict(engagelab.VoiceResult, {"language": "zh", "content": "你好", "tts_type": "t"})
+        r = from_dict(engagelab.VoiceResult, {"language": "zh", "file_url": "https://example.com/v.mp3"})
         self.assertEqual(r.language, "zh")
-        self.assertEqual(r.tts_type, "t")
-
-    def test_voice_list_result(self) -> None:
-        r = from_dict(engagelab.VoiceListResult, {"voices": [{"language": "en"}]})
-        self.assertEqual(len(r.voices), 1)
+        self.assertEqual(r.file_url, "https://example.com/v.mp3")
 
     def test_image_upload_result(self) -> None:
-        r = from_dict(engagelab.ImageUploadResult, {"media_id": "img_1"})
-        self.assertEqual(r.media_id, "img_1")
+        r = from_dict(engagelab.ImageUploadResult, {"big_picture_id": "img_1"})
+        self.assertEqual(r.big_picture_id, "img_1")
 
     def test_tag_quota_get_result(self) -> None:
         r = from_dict(engagelab.TagQuotaGetResult, {"data": {"totalTagQuota": 1000}})
@@ -804,7 +796,15 @@ class TestPush(unittest.TestCase):
 
     def test_batch_by_regid_body(self) -> None:
         client = _client(self.server)
-        self.server.set_response(body={"results": {"r1": {"success": True, "msg_id": 1}}})
+        self.server.set_response(body={
+            "rate_limit_info": {
+                "message": "Some requests were rate limited during batch processing",
+                "rate_limit_occurred": True,
+            },
+            "results": {"r1": {"target": "r1", "success": False, "error": {
+                "code": 23008, "message": "Rate limit exceeded for the API",
+            }}},
+        })
         result = client.push.batch_by_regid(engagelab.BatchPushParam(
             requests=[
                 engagelab.BatchPushRequest(
@@ -823,7 +823,10 @@ class TestPush(unittest.TestCase):
         self.assertEqual(req0["notification"]["alert"], "hi")
         self.assertEqual(req0["options"]["classification"], 1)
         self.assertEqual(req0["custom_args"]["k"], "v")
-        self.assertIn("results", result)
+        self.assertIsInstance(result.results, dict)
+        self.assertIsInstance(result.results["r1"], engagelab.BatchPushSingleResult)
+        self.assertEqual(result.results["r1"].error["code"], 23008)
+        self.assertTrue(result.rate_limit_info.rate_limit_occurred)
 
     def test_batch_by_alias(self) -> None:
         client = _client(self.server)
@@ -977,6 +980,14 @@ class TestDevice(unittest.TestCase):
         self.assertIn("tags", body)
         self.assertNotIn("alias", body)
 
+    def test_clear_tags(self) -> None:
+        client = _client(self.server)
+        self.server.set_response(body={})
+        client.device.set("r1", engagelab.DeviceSetParam(tags=""))
+        body = json.loads(self.server.last_body)
+        self.assertIn("tags", body)
+        self.assertEqual(body["tags"], "")
+
     def test_delete(self) -> None:
         client = _client(self.server)
         self.server.set_response(body={})
@@ -1049,22 +1060,16 @@ class TestTag(unittest.TestCase):
     def test_get_count(self) -> None:
         client = _client(self.server)
         self.server.set_response(body={"tagsCount": {"vip": 100, "test": 50}})
-        result = client.tag.get_count(["vip", "test"], platforms=["android"])
+        result = client.tag.get_count(["vip", "test"], platform="android")
         self.assertEqual(result.tags_count, {"vip": 100, "test": 50})
         self.assertIn("tags=vip", self.server.last_path)
         self.assertIn("platform=android", self.server.last_path)
 
-    def test_get_count_without_platforms(self) -> None:
-        client = _client(self.server)
-        self.server.set_response(body={"tagsCount": {"vip": 100}})
-        client.tag.get_count(["vip"])
-        self.assertNotIn("platform=", self.server.last_path)
-
     def test_get_device_status(self) -> None:
         client = _client(self.server)
-        self.server.set_response(body={"tags": ["vip"]})
+        self.server.set_response(body={"result": True})
         result = client.tag.get_device_status("vip", "reg_001")
-        self.assertEqual(result.tags, ["vip"])
+        self.assertTrue(result.result)
         self.assertIn("/v4/tags/vip/registration_ids/reg_001", self.server.last_path)
 
     def test_get_quota(self) -> None:
@@ -1073,16 +1078,9 @@ class TestTag(unittest.TestCase):
             "totalTagQuota": 1000, "useTagQuota": 50,
             "totalAliasQuota": 500, "useAliasQuota": 10,
         }})
-        result = client.tag.get_quota(tags=["vip"], platforms=["android"])
+        result = client.tag.get_quota(tags=["vip"], platform="android")
         self.assertIn("/v4/tags/quota-info", self.server.last_path)
         self.assertEqual(result.data["totalTagQuota"], 1000)
-
-    def test_get_quota_no_params(self) -> None:
-        client = _client(self.server)
-        self.server.set_response(body={"data": {}})
-        client.tag.get_quota()
-        self.assertNotIn("tags=", self.server.last_path)
-        self.assertNotIn("platform=", self.server.last_path)
 
 
 # ===================================================================
@@ -1273,24 +1271,18 @@ class TestStatus(unittest.TestCase):
 
     def test_batch_message_detail(self) -> None:
         client = _client(self.server)
-        self.server.set_response(body={"msg_001": {"sent": 50}})
+        self.server.set_response(body=[{"message_id": "msg_001", "status": "sent"}])
         result = client.status.batch_message_detail(["msg_001"])
-        self.assertIn("msg_001", result)
+        self.assertEqual(result[0]["message_id"], "msg_001")
         self.assertIn("/v4/status/batch/message", self.server.last_path)
 
-    def test_plan_detail_with_message_ids(self) -> None:
+    def test_plan_detail(self) -> None:
         client = _client(self.server)
         self.server.set_response(body={"plan_001": {"sent": 200}})
-        result = client.status.plan_detail("plan_001", message_ids=["m1", "m2"])
+        result = client.status.plan_detail(["plan_001"], "2026-01-01", "2026-01-31")
         self.assertIn("plan_001", result)
-        self.assertIn("plan_id=plan_001", self.server.last_path)
-        self.assertIn("message_ids=m1", self.server.last_path)
-
-    def test_plan_detail_without_message_ids(self) -> None:
-        client = _client(self.server)
-        self.server.set_response(body={"plan_001": {"sent": 200}})
-        client.status.plan_detail("plan_001")
-        self.assertNotIn("message_ids=", self.server.last_path)
+        self.assertIn("plan_ids=plan_001", self.server.last_path)
+        self.assertIn("start_date=2026-01-01", self.server.last_path)
 
 
 # ===================================================================
@@ -1378,30 +1370,31 @@ class TestVoice(unittest.TestCase):
 
     def test_create_full_body(self) -> None:
         client = _client(self.server)
-        self.server.set_response(body={"language": "zh", "content": "你好", "tts_type": "default"})
-        result = client.voice.create(engagelab.VoiceParam(
-            language="zh", content="你好", tts_type="default",
-        ))
-        self.assertEqual(result.language, "zh")
-        self.assertEqual(result.content, "你好")
-        self.assertEqual(result.tts_type, "default")
-        body = json.loads(self.server.last_body)
-        self.assertEqual(body["language"], "zh")
-        self.assertEqual(body["content"], "你好")
-        self.assertEqual(body["tts_type"], "default")
+        self.server.set_response(body={"language": "zh", "file_url": "https://example.com/v.mp3"})
+        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as voice_file:
+            voice_file.write(b"voice-data")
+            file_path = voice_file.name
+        try:
+            result = client.voice.create("zh", file_path)
+        finally:
+            os.unlink(file_path)
+        self.assertEqual(result.file_url, "https://example.com/v.mp3")
+        self.assertIn("multipart/form-data", self.server.last_headers.get("Content-Type", ""))
+        self.assertIn(b'name="language"', self.server.last_body)
+        self.assertIn(b'name="file"', self.server.last_body)
 
     def test_list(self) -> None:
         client = _client(self.server)
-        self.server.set_response(body={"voices": [
-            {"language": "en", "content": "hello"},
-            {"language": "zh", "content": "你好"},
-        ]})
+        self.server.set_response(body=[
+            {"language": "en", "file_url": "u1"},
+            {"language": "zh", "file_url": "u2"},
+        ])
         result = client.voice.list()
-        self.assertEqual(len(result.voices), 2)
+        self.assertEqual(len(result), 2)
 
     def test_get(self) -> None:
         client = _client(self.server)
-        self.server.set_response(body={"language": "en", "content": "hello", "tts_type": "t"})
+        self.server.set_response(body={"language": "en", "file_url": "u"})
         result = client.voice.get("en")
         self.assertEqual(result.language, "en")
         self.assertIn("/v4/voices/en", self.server.last_path)
@@ -1423,38 +1416,19 @@ class TestImage(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.server = _start_mock_server()
 
-    def test_upload_oppo_from_reader(self) -> None:
+    def test_upload_oppo_big_picture(self) -> None:
         client = _client(self.server)
-        self.server.set_response(body={"media_id": "img_001"})
-        fake_data = b"\x89PNG\r\n\x1a\n" + b"\x00" * 100
-        reader = io.BytesIO(fake_data)
-        result = client.image.upload_oppo_from_reader("test.png", reader)
-        self.assertEqual(result.media_id, "img_001")
+        self.server.set_response(body={"big_picture_id": "img_001"})
+        result = client.image.upload_oppo(engagelab.OppoImageParam(
+            big_picture_url="https://example.com/big.png",
+        ))
+        self.assertEqual(result.big_picture_id, "img_001")
         self.assertEqual(self.server.last_method, "POST")
         self.assertIn("/v4/image/oppo", self.server.last_path)
-        ct = self.server.last_headers.get("Content-Type", "")
-        self.assertIn("multipart/form-data", ct)
-        self.assertIn("boundary=", ct)
-        # verify the body contains the file data
-        self.assertIn(b"test.png", self.server.last_body)
-        self.assertIn(fake_data, self.server.last_body)
-        self.assertIn(b'name="file"', self.server.last_body)
-
-    def test_upload_oppo_from_file_path(self) -> None:
-        client = _client(self.server)
-        self.server.set_response(body={"media_id": "img_002"})
-        fake_data = b"\x89PNG fake image content for file path test"
-        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
-            f.write(fake_data)
-            tmp_path = f.name
-        try:
-            result = client.image.upload_oppo(tmp_path)
-            self.assertEqual(result.media_id, "img_002")
-            self.assertIn(fake_data, self.server.last_body)
-            self.assertIn(os.path.basename(tmp_path).encode(), self.server.last_body)
-        finally:
-            os.unlink(tmp_path)
-
+        self.assertIn("application/json", self.server.last_headers.get("Content-Type", ""))
+        self.assertEqual(json.loads(self.server.last_body), {
+            "big_picture_url": "https://example.com/big.png",
+        })
 
 # ===================================================================
 # Group Push client
@@ -1476,8 +1450,8 @@ class TestGroupPush(unittest.TestCase):
         gc = engagelab.GroupPushClient("gk", "gs", base_url=_base_url(self.server))
         self.server.set_response(body={
             "group_msgid": "g_002",
-            "successes": {"app1": {"msg_id": "m1"}},
-            "errors": {"app2": {"code": 1001, "message": "fail"}},
+            "app1": {"request_id": "r1", "msg_id": "m1"},
+            "app2": {"error": {"code": 1001, "message": "fail"}},
         })
         result = gc.send(engagelab.PushParam(
             from_="api",
@@ -1510,6 +1484,40 @@ class TestGroupPush(unittest.TestCase):
 # ===================================================================
 # Error parsing edge cases
 # ===================================================================
+
+class TestNewApiContracts(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.server = _start_mock_server()
+
+    def test_device_token_register(self) -> None:
+        client = _client(self.server)
+        self.server.set_response(body={"results": [{
+            "token": "t1", "registration_id": "r1", "is_new": True, "code": 0,
+        }, {
+            "token": "", "is_new": False, "code": 21003,
+            "message": "invalid fcm token format",
+        }]})
+        result = client.device.register_token(engagelab.DeviceTokenRegisterParam(
+            platform="android", tokens=["t1"],
+        ))
+        self.assertEqual(result.results[0].registration_id, "r1")
+        self.assertEqual(result.results[1].code, 21003)
+        self.assertEqual(result.results[1].message, "invalid fcm token format")
+        self.assertEqual(self.server.last_method, "POST")
+        self.assertIn("/v4/devices/token/registration_id", self.server.last_path)
+
+    def test_app_vip_status(self) -> None:
+        client = _client(self.server)
+        self.server.set_response(body={"vip_status": 1, "vip_end_time": 1775059200})
+        result = client.app.get_vip_status()
+        self.assertEqual(result.vip_status, 1)
+        self.assertEqual(result.vip_end_time, 1775059200)
+
+    def test_data_center_constants(self) -> None:
+        self.assertEqual(engagelab.DataCenter.JAPAN, "https://pushapi-jpn.engagelab.com")
+        self.assertEqual(engagelab.DataCenter.BRAZIL, "https://pushapi-bra.engagelab.com")
+
 
 class TestErrorParsing(unittest.TestCase):
     def test_parse_valid_error(self) -> None:
