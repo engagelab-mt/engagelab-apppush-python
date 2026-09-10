@@ -982,6 +982,14 @@ class TestDevice(unittest.TestCase):
         self.assertIn("tags", body)
         self.assertNotIn("alias", body)
 
+    def test_clear_tags(self) -> None:
+        client = _client(self.server)
+        self.server.set_response(body={})
+        client.device.set("r1", engagelab.DeviceSetParam(tags=""))
+        body = json.loads(self.server.last_body)
+        self.assertIn("tags", body)
+        self.assertEqual(body["tags"], "")
+
     def test_delete(self) -> None:
         client = _client(self.server)
         self.server.set_response(body={})

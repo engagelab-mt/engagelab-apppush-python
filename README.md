@@ -91,6 +91,7 @@ group_client.send(param)
 ```python
 client.device.get(registration_id)              # 查询设备信息
 client.device.set(registration_id, param)        # 设置设备标签/别名
+client.device.set(registration_id, engagelab.DeviceSetParam(tags=""))  # 清空全部标签
 client.device.delete(registration_id)            # 删除设备
 client.device.get_status(param)                  # 查询设备在线状态
 client.device.register_token(param)              # Token 换取 Registration ID
