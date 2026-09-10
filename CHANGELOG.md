@@ -8,20 +8,28 @@
 
 ### 新增
 
-- 日本、巴西数据中心
-- Device Token 换取 Registration ID、App VIP 状态与批量消息生命周期 API
+- 新增`DataCenter.JAPAN`和`DataCenter.BRAZIL`，可按应用所属接入点选择对应 AppPush 地址。
+- 新增`device.register_token`，适配`POST /v4/devices/token/registration_id`；请求支持`platform`、`tokens`、`apns_production`，结果支持每个 Token 的`registration_id`、`is_new`、`code`、`message`。
+- 新增`app.get_vip_status`并挂载到`Client.app`，映射`vip_status`和`vip_end_time`。
 
 ### 变更
 
-- 补齐 Push、Schedule、Status、Plan 和 Group Push 协议字段
-- Device 标签支持 `DeviceSetTags` 对象或空字符串清空全部标签
-- Voice 改为官网 multipart 文件协议，OPPO Image 改为官网 JSON URL 协议
-- Tag 计数/配额及 Plan Detail 查询参数改为官网协议
+- Push 请求模型补齐`body.voip`、Android`badge_set_num/is_fold`、Message`test_message/receipt_id`、Options`auto_truncation`。
+- `notification.alert`、Android`alert`和`message.msg_content`使用`str/dict`联合类型；VoIP 与厂商扩展继续使用动态 dict。
+- Batch Push 补齐逐目标成功/失败模型、`error.code/error.message`和顶层`rate_limit_info`，可以识别 HTTP 200 下的部分失败和限流。
+- Group Push 按顶层动态 AppKey 解析成功与失败结果，分别写入`successes`、`errors`，并保留`group_msgid`。
+- Device 标签支持`DeviceSetTags`对象或空字符串：对象用于增删标签，`tags=""`用于清空全部标签。
+- Schedule 新增`TriggerIntelligent.backup_time`，创建和更新定时任务均复用补齐后的 Push 模型。
+- Tag-device 查询改为返回`TagStatusGetResult.result`；Tag 计数和配额接口改为`List[str] tags + 单个 platform`，公共 query 编码启用 repeated-key。
+- Plan Detail 查询参数修正为`plan_ids/start_date/end_date`，返回值继续保持可自行解析的 dict。
+- Voice`create`由 JSON 文本参数改为官网`language + file` multipart 上传；列表返回数组，单项结果补齐`file_url`。
+- OPPO Image 由 multipart 文件上传改为 JSON URL 请求，使用`big_picture_url/small_picture_url`并映射`big_picture_id/small_picture_id`；移除不符合官网协议的`upload_oppo_from_reader`。
+- Device Token 和 OPPO Image 的数量、平台、条件及二选一业务约束交由服务端校验，SDK 沿用`ApiError`返回错误。
 
 ### 修复
 
-- 修正与官网不一致的 REST 路径、查询参数和响应字段映射
-- 补充请求序列化、响应解析及错误响应测试
+- 修正 Tag、Status Plan Detail、Voice、Image 和 Group Push 中与官网不一致的 query、body 与响应层级。
+- 补充请求序列化、动态 AppKey、部分限流、响应解析及错误响应测试，并通过完整 unittest 与 compileall 验证。
 
 ## [0.1.0] - 2026-03-20
 
