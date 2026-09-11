@@ -1613,7 +1613,7 @@ class TestErrorParsing(unittest.TestCase):
 
 class TestExports(unittest.TestCase):
     def test_version(self) -> None:
-        self.assertEqual(engagelab.__version__, "0.1.0")
+        self.assertEqual(engagelab.__version__, "0.1.1")
 
     def test_all_exports_importable(self) -> None:
         for name in engagelab.__all__:

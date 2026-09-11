@@ -90,7 +90,7 @@ from .image import ImageUploadResult, OppoImageParam
 from .app import AppVipStatusResult
 from .group_push import GroupPushClient, GroupPushResult
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     # Core
