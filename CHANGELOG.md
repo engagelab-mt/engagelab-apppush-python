@@ -30,6 +30,7 @@
 
 ### 修复
 
+- `PushBody`：保留旧位置参数中`options`的参数位置，新增`voip`不影响已有位置参数调用。
 - `client.device.set`、`client.tag.set`、`client.alias.delete`、`client.tag.delete`和`client.device.delete`：兼容服务端成功时返回纯文本`success`，避免设备标签/别名更新、清空标签及删除操作因 JSON 解析失败而抛出异常。
 - `client.tag.get_count`、`client.tag.get_quota`和`client.status.plan_detail`：修正参数编码，避免服务端收到错误的查询条件。
 - `client.voice.create`、`client.voice.list`和`client.image.upload_oppo`：修正请求或响应格式不一致导致的调用失败、字段丢失问题。

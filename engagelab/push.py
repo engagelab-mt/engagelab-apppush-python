@@ -180,8 +180,8 @@ class PushBody:
     notification: Optional[NotificationMessage] = None
     message: Optional[CustomMessage] = None
     live_activity: Optional[LiveActivityMessage] = None
-    voip: Optional[Dict[str, Any]] = None
     options: Optional[Options] = None
+    voip: Optional[Dict[str, Any]] = None
 
 
 @dataclass

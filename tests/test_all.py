@@ -149,6 +149,15 @@ class TestToDict(unittest.TestCase):
         self.assertIs(to_dict(True), True)
         self.assertIsNone(to_dict(None))
 
+    def test_push_body_preserves_legacy_positional_options(self) -> None:
+        options = engagelab.Options(time_to_live=60)
+
+        body = engagelab.PushBody("all", None, None, None, options)
+
+        self.assertIs(body.options, options)
+        self.assertIsNone(body.voip)
+        self.assertEqual(to_dict(body)["options"]["time_to_live"], 60)
+
     # -- PushParam field map --
 
     def test_push_param_from_field_map(self) -> None:
