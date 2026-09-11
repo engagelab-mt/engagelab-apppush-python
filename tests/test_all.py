@@ -47,7 +47,9 @@ class _Handler(http.server.BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
-        if resp is not None:
+        if server.next_raw_response is not None:
+            self.wfile.write(server.next_raw_response)
+        elif resp is not None:
             self.wfile.write(json.dumps(resp).encode())
 
     do_GET = _respond
@@ -63,10 +65,16 @@ class _MockServer(http.server.HTTPServer):
     last_path: str = ""
     last_body: bytes = b""
     last_headers: Dict[str, str] = {}
+    next_raw_response = None
 
     def set_response(self, status: int = 200, body: Any = None) -> None:
         self.next_status = status
         self.next_response = body if body is not None else {}
+        self.next_raw_response = None
+
+    def set_raw_response(self, body: bytes, status: int = 200) -> None:
+        self.next_status = status
+        self.next_raw_response = body
 
 
 def _start_mock_server() -> _MockServer:
@@ -730,6 +738,43 @@ class TestClient(unittest.TestCase):
         self.server.next_status = 200
         self.server.next_response = None  # handler sends empty body
         client.device.delete("r1")  # void operation, should not crash
+
+    def test_plain_success_response_for_mutation_operations(self) -> None:
+        """HTTP 200 with literal ``success`` must not fail void SDK methods."""
+        client = _client(self.server)
+        operations = {
+            "device.set": lambda: client.device.set(
+                "r1",
+                engagelab.DeviceSetParam(
+                    tags=engagelab.DeviceSetTags(add=["tag1"]),
+                    alias="alias1",
+                ),
+            ),
+            "tag.set": lambda: client.tag.set(
+                "tag1",
+                engagelab.TagSetParam(
+                    registration_ids=engagelab.TagRegistrationIDs(add=["r1"]),
+                ),
+            ),
+            "alias.delete": lambda: client.alias.delete("alias1", platforms=["android"]),
+            "device.set(clear tags)": lambda: client.device.set(
+                "r1", engagelab.DeviceSetParam(tags="")
+            ),
+            "tag.delete": lambda: client.tag.delete("tag1", platforms=["android"]),
+            "device.delete": lambda: client.device.delete("r1"),
+        }
+
+        for name, operation in operations.items():
+            with self.subTest(operation=name):
+                self.server.set_raw_response(b"success")
+                self.assertIsNone(operation())
+
+    def test_plain_text_response_still_fails_for_typed_operation(self) -> None:
+        """A modeled response must remain strict when the server breaks JSON."""
+        client = _client(self.server)
+        self.server.set_raw_response(b"success")
+        with self.assertRaises(json.JSONDecodeError):
+            client.push.send(engagelab.PushParam(to="all"))
 
 
 # ===================================================================

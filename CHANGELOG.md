@@ -30,6 +30,7 @@
 
 ### 修复
 
+- `client.device.set`、`client.tag.set`、`client.alias.delete`、`client.tag.delete`和`client.device.delete`：兼容服务端成功时返回纯文本`success`，避免设备标签/别名更新、清空标签及删除操作因 JSON 解析失败而抛出异常。
 - `client.tag.get_count`、`client.tag.get_quota`和`client.status.plan_detail`：修正参数编码，避免服务端收到错误的查询条件。
 - `client.voice.create`、`client.voice.list`和`client.image.upload_oppo`：修正请求或响应格式不一致导致的调用失败、字段丢失问题。
 - Tests：补充公开方法的请求序列化、Group Push 多应用结果、Batch Push 部分限流、响应解析及错误响应测试。

@@ -114,7 +114,16 @@ class Client:
         if not resp_body:
             return None
 
-        resp_data = json.loads(resp_body)
+        try:
+            resp_data = json.loads(resp_body)
+        except json.JSONDecodeError:
+            # Some successful mutation APIs return the literal text ``success``
+            # even though their Content-Type is application/json. Untyped calls
+            # have no response model, so preserve such payloads instead of
+            # turning a successful request into a decoding failure.
+            if result_cls is None:
+                return resp_body.decode("utf-8")
+            raise
         if result_cls is not None:
             return from_dict(result_cls, resp_data)
         return resp_data
