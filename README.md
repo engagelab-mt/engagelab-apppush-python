@@ -213,3 +213,7 @@ client = engagelab.Client("key", "secret",
 ## 许可证
 
 MIT License
+
+## Native representative tests
+
+See [python native test instructions](tests/NATIVE_TESTS.md) for standalone contract tests and parameterized QA/production integration tests.
