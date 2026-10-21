@@ -92,8 +92,17 @@ class GroupPushClient:
             raise parse_api_error(exc.code, resp_body) from None
 
         resp_data: Dict[str, Any] = json.loads(resp_body) if resp_body else {}
+        successes: Dict[str, Any] = {}
+        errors: Dict[str, Any] = {}
+        for app_key, item in resp_data.items():
+            if app_key == "group_msgid":
+                continue
+            if isinstance(item, dict) and "error" in item:
+                errors[app_key] = item["error"]
+            elif isinstance(item, dict) and "msg_id" in item:
+                successes[app_key] = item
         return GroupPushResult(
             group_msgid=resp_data.get("group_msgid", ""),
-            successes=resp_data.get("successes"),
-            errors=resp_data.get("errors"),
+            successes=successes,
+            errors=errors,
         )

@@ -28,11 +28,12 @@ class PushPlanDeleteResult:
 
 @dataclass
 class PushPlanInfo:
-    push_id: Optional[str] = None
+    plan_id: Optional[str] = None
     plan_description: Optional[str] = None
     count: int = 0
     create_time: int = 0
     last_used_time: int = 0
+    entity_tag: Optional[str] = None
 
 
 @dataclass

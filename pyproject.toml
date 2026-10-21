@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "engagelab-apppush"
-version = "0.1.0"
+version = "0.1.1"
 description = "EngageLab AppPush REST API Python SDK (zero third-party dependencies)"
 readme = "README.md"
 license = {text = "MIT"}

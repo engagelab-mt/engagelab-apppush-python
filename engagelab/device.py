@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 
 # ---------------------------------------------------------------------------
@@ -36,8 +36,29 @@ class DeviceSetTags:
 
 @dataclass
 class DeviceSetParam:
-    tags: Optional[DeviceSetTags] = None
+    tags: Optional[Union[DeviceSetTags, str]] = None
     alias: Optional[str] = None
+
+
+@dataclass
+class DeviceTokenRegisterParam:
+    platform: str = ""
+    tokens: List[str] = field(default_factory=list)
+    apns_production: Optional[bool] = None
+
+
+@dataclass
+class DeviceTokenResult:
+    token: str = ""
+    registration_id: Optional[str] = None
+    is_new: bool = False
+    code: int = 0
+    message: Optional[str] = None
+
+
+@dataclass
+class DeviceTokenRegisterResult:
+    results: List[DeviceTokenResult] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -80,3 +101,14 @@ class DeviceService:
         ``POST /v4/devices/status``
         """
         return self._client._post("/v4/devices/status", body=param)
+
+    def register_token(self, param: DeviceTokenRegisterParam) -> DeviceTokenRegisterResult:
+        """Register vendor tokens and return EngageLab registration IDs.
+
+        ``POST /v4/devices/token/registration_id``
+        """
+        return self._client._post(
+            "/v4/devices/token/registration_id",
+            body=param,
+            result_cls=DeviceTokenRegisterResult,
+        )
